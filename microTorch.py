@@ -30,15 +30,64 @@ class MicroNode:
     
     def __add__(self, other):
         return self._add(other)
+    
+    def _sub(self, other):
+        other = other if isinstance(other, MicroNode) else MicroNode(other)
+        result = MicroNode(self.data - other.data)
+        
+        def _backward():
+            if self.requires_grad:
+                self.grad = np.ones_like(self.data)
+            if other.requires_grad:
+                other.grad = -np.ones_like(other.data)
+                
+        result.backward = _backward
+        return result
 
     def sub(self, other):
+        return self._sub(other)
+    
+    def __sub__(self, other):
+        return self._sub(other)
+    
+    def _mul(self, other):
         other = other if isinstance(other, MicroNode) else MicroNode(other)
-        return MicroNode(self.data - other.data)
+        result = MicroNode(self.data * other.data)
+        
+        def _backward():
+            if self.requires_grad:
+                self.grad = other.data
+            if other.requires_grad:
+                other.grad = self.data
+        
+        result.backward = _backward
+        return result
 
     def mul(self, other):
+        return self._mul(other)
+    
+    def __mul__(self, other):
+        return self._mul(other)
+    
+    def _div(self, other):
         other = other if isinstance(other, MicroNode) else MicroNode(other)
-        return MicroNode(self.data * other.data)
+        result = MicroNode(self.data / other.data)
+        
+        def _backward():
+            if self.requires_grad:
+                self.grad = 1 / other.data
+            if other.requires_grad:
+                other.grad = -self.data / (other.data ** 2)
+                
+        result.backward = _backward
+        return result
 
     def div(self, other):
+        return self._div(other)
+    
+    def __truediv__(self, other):
+        return self._div(other)
+    
+    def __rtruediv__(self, other):
         other = other if isinstance(other, MicroNode) else MicroNode(other)
-        return MicroNode(self.data / other.data)
+        return other._div(self)
